@@ -29,16 +29,31 @@ def ema(series: pd.Series, n: int):
 def sma(series: pd.Series, n: int):
     return series.rolling(window=n).mean()
 
-def macd(series, e1=12, e2=26, e3=9):
+
+# remember to plot the macd using panel='lower' in mpf.make_addplot()
+def macd(series: pd.Series, e1=12, e2=26, e3=9):
     ema1 = ema(series, e1)
     ema2 = ema(series, e2)
 
     macd = ema1 - ema2
-    ema3 = ema(macd, e3)
+    signal = ema(macd, e3)
 
-    d = {'macd': macd, 'signal': ema3}
+    d = {'macd': macd, 'signal': signal}
 
     result = pd.DataFrame(d)
     result = result.set_index(macd.index.values)
 
     return result
+
+# this function returns the current close price of the given symbol
+def close(symbol: pd.DataFrame):
+    return symbol['Close'].iloc[0]
+
+def high(symbol: pd.DataFrame):
+    return symbol['High'].iloc[0]
+
+def low(symbol: pd.DataFrame):
+    return symbol['Low'].iloc[0]
+
+def open_price(symbol: pd.DataFrame):
+    return symbol['Open'].iloc[0]
