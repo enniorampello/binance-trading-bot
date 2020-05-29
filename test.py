@@ -1,7 +1,15 @@
 from binance.client import Client
 from indicators import *
+import pandas as pd
 import mplfinance as mpf
 
+
+
+
+
+
+
+"""
 btc_usdt = import_data('BTCUSDT', '1h', '2020-04-10', '2020-04-17')
 
 x = 0
@@ -14,3 +22,4 @@ else:
 
 
 mpf.plot(btc_usdt, type='candle', addplot=adp)
+"""
