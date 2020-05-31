@@ -15,7 +15,7 @@ It is possible, in future, to consider using directly the Binance API through re
 For all the information about function calls, parameters and constants, check the documentation [here](https://python-binance.readthedocs.io/en/latest/overview.html).
 
 ### Loading data
-The file `import-data.py` contains some **functions to request the historical data** to the *Binance API*. Every function is set to retrieve data of a different format (1min, 5min, 1hour, 1day, etc...). Currently all the functions are set to retrieve data about the price of the pair BTC/USDT but they should be set to receive as parameter the symbol and the time window of the data.
+The file `import-data.py` contains some **functions to request the historical data** (OHLCV: Open, High, Low, Close, Volume) to the *Binance API*. Every function is set to retrieve data of a different format (1min, 5min, 1hour, 1day, etc...). Currently all the functions are set to **retrieve data about BTC/USDT** but they should be set to receive as parameter the symbol and the time window of the data.<br/>
 After all the price data is imported from the exchange (through the function `get_historical_klines()` of the `python-binance` wrapper) it is converted into a `pd.DataFrame` (that is returned from the function) and it is also saved into a *.csv* file, in the directory of the project (in order to be used in future without reimporting it).
 
 ### Indicators
