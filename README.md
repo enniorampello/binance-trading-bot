@@ -34,4 +34,5 @@ The class `Trader` is used to store the following informations:
 ### TODO
 - Modify the functions of `import-data.py` to set the index of the DataFrame and the *.csv* file to be the correct datetime of the tuple (Google *epoch*).
 - Modify the functions of `import-data.py` to receive as parameters the *symbol*, the *start_date* and the (optional) *end_date*. If the *end_date* is not given, the default should be the current date.
--
+- Implement all the missing attributes and methods of the classes `Trade` and `Trader`.
+- Develop an initial strategy to test the execution of the algorithm on historical data.
