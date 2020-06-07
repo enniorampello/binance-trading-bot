@@ -1,8 +1,11 @@
 from binance.client import Client
 from indicators import *
-import pandas as pd
-import matplotlib.pyplot as plt
+import import_data
+from datetime import datetime
+import backtrader as bt
+import time
 
-data = pd.read_csv(r'./BTCUSDT/training-data-1d.csv')
-
-print(data['Close'].iloc[-1])
+epoch = 1591056001000 / 1000
+print(time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime(epoch)))
+date = datetime.fromtimestamp(epoch)
+print(date)
