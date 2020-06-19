@@ -38,6 +38,6 @@ Here there is a list of all the strategies to implement:
 - Combinations of multiple strategies; (**Hot topic**)
 
 ### TODO
-[x] Implement the EMA Crossover strategy (class `GoldenCross`);
-[x] Implement the EMA Crossover with *take-profit* and *stop-loss* (class `TrailCross`);
-[] Fix bugs in class `TrailCross`;
+- [x] Implement the EMA Crossover strategy (class `GoldenCross`);
+- [x] Implement the EMA Crossover with *take-profit* and *stop-loss* (class `TrailCross`);
+- [ ] Fix bugs in class `TrailCross`;
