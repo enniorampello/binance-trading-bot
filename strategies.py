@@ -1,11 +1,12 @@
 import  backtrader as bt
 import datetime
-from backtrader.indicators import ExponentialMovingAverage
+from backtrader.indicators import ExponentialMovingAverage, CrossOver
 
 class GoldenCross(bt.Strategy):
 
     params = dict (
         ema = ExponentialMovingAverage,
+        cross = CrossOver,
         period1 = 7,
         period2 = 30,
     )
@@ -18,12 +19,15 @@ class GoldenCross(bt.Strategy):
     def __init__(self):
         self.ema1 = self.p.ema(period=self.p.period1)
         self.ema2 = self.p.ema(period=self.p.period2)
-        self.cross = bt.ind.CrossOver(self.ema1, self.ema2)
+        self.cross = self.p.cross(self.ema1, self.ema2)
 
         self.startcash = self.broker.getvalue()
         self.long = False
         self.order = None
         self.first_position = True
+
+        self.num_long_trades = 0
+        self.num_short_trades = 0
     '''
     def notify_order(self, order):
         if order.status in [order.Submitted, order.Accepted]:
@@ -64,18 +68,18 @@ class GoldenCross(bt.Strategy):
         position_size = (self.env.broker.getcash()*0.8)/self.data.close
         if self.cross > 0:
             self.close()
-            self.order = self.buy(size=position_size)
+            self.buy(size=position_size)
             # self.log('BUY CREATE, %.2f' % self.data.close[0])
-            self.long = True
+            self.num_long_trades += 1
         elif self.cross < 0:
             self.close()
-            self.order = self.sell(size=position_size)
+            self.sell(size=position_size)
+            self.num_short_trades += 1
             # self.log('SELL CREATE, %.2f' % self.data.close[0])
-            self.long = False
 
     def stop(self):
         pnl = round(self.broker.getvalue() - self.startcash,2)
-        print(f'EMA Period: [{self.p.period1}, {self.p.period2}] Final PnL: {pnl}')
+        print(f'EMA Period: [{self.p.period1}, {self.p.period2}] Final PnL: {pnl} Long/Short trades: [{self.num_long_trades}, {self.num_short_trades}]')
 
 
 
@@ -83,15 +87,20 @@ class TrailCross(bt.Strategy):
 
     params = dict (
         ema = ExponentialMovingAverage,
+        cross = bt.indicators.CrossOver,
+
         period1 = 7,
         period2 = 30,
+        
         stop_type = bt.Order.StopTrail,
+        
+        is_percent = False,
+        
         tp_percent = 0.03,
         sl_percent = 0.01,
+        
         tp_amount = 4.0,
         sl_amount = 1.5,
-        is_amount = True,
-        is_percent = False,
     )
 
     def log(self, txt, dt=None):
@@ -102,7 +111,7 @@ class TrailCross(bt.Strategy):
     def __init__(self):
         self.ema1 = self.p.ema(period=self.p.period1)
         self.ema2 = self.p.ema(period=self.p.period2)
-        self.cross = bt.ind.CrossOver(self.ema1, self.ema2)
+        self.cross = self.p.cross(self.ema1, self.ema2)
 
         self.startcash = self.broker.getvalue()
         self.order = None
@@ -181,3 +190,4 @@ class TrailCross(bt.Strategy):
     def stop(self):
         pnl = round(self.broker.getvalue() - self.startcash,2)
         print(f'EMA Period: [{self.p.period1}, {self.p.period2}] Final PnL: {pnl}')
+        
