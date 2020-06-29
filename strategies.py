@@ -1,6 +1,6 @@
 import  backtrader as bt
 import datetime
-from backtrader.indicators import ExponentialMovingAverage, CrossOver
+from backtrader.indicators import ExponentialMovingAverage, CrossOver, BBands
 
 class GoldenCross(bt.Strategy):
 
@@ -80,8 +80,6 @@ class GoldenCross(bt.Strategy):
     def stop(self):
         pnl = round(self.broker.getvalue() - self.startcash,2)
         print(f'EMA Period: [{self.p.period1}, {self.p.period2}] Final PnL: {pnl} Long/Short trades: [{self.num_long_trades}, {self.num_short_trades}]')
-
-
 
 class TrailCross(bt.Strategy):
 
@@ -190,4 +188,65 @@ class TrailCross(bt.Strategy):
     def stop(self):
         pnl = round(self.broker.getvalue() - self.startcash,2)
         print(f'EMA Period: [{self.p.period1}, {self.p.period2}] Final PnL: {pnl}')
+
+class BollingerBandsStrategy(bt.Strategy):
+
+    params = dict(
+        period = 20,
+        devfactor = 2.0,
+        distance = 2,
+        stoploss = 2
+    )
+
+    def __init__(self):
+        self.bbands = BBands(period=self.p.period, devfactor=self.p.devfactor)
+        self.startcash = self.broker.getvalue()
+        self.cross = bt.indicators.CrossOver
+        self.ema = bt.indicators.ExponentialMovingAverage(period=200)
+        self.order = None
+        self.close_to_top = False
+        self.close_to_bottom = False
+        self.num_long_trades = 0
+        self.num_short_trades = 0
+    
+    def next(self):
+        position_size = (self.env.broker.getcash()*0.8)/self.data.close
+
+        if abs(self.data.close[0] - self.bbands.lines.top[0]) < self.p.distance and not self.close_to_top:
+            self.close_to_top = True
+            self.close_to_bottom = False
+            if self.order is None and self.data.close[0] < self.ema[0]:
+                self.order = self.sell(size=position_size)
+                self.num_short_trades += 1
+            elif self.order is not None:
+                if self.order.isbuy():
+                    self.close()
+                    self.order = None
+        elif abs(self.data.close[0] - self.bbands.lines.bot[0]) < self.p.distance and not self.close_to_bottom:
+            self.close_to_bottom = True
+            self.close_to_top = False
+            if self.order is None and self.data.close[0] > self.ema[0]:
+                self.order = self.buy(size=position_size)
+                self.num_long_trades += 1
+            elif self.order is not None:
+                if self.order.issell():
+                    self.close()
+                    self.order = None
+        
+        if abs(self.data.close[0] - self.bbands.lines.mid[0]) < self.p.distance:
+            self.close_to_bottom = False
+            self.close_to_top = False
+
+        if self.order is not None:
+            if self.order.isbuy() and self.data.close[0] < (self.bbands.lines.bot[0]*(1+self.p.stoploss*0.01)):
+                self.close()
+                self.order = None
+            elif self.order.issell() and self.data.close[0] > (self.bbands.lines.top[0]*(1-self.p.stoploss*0.01)):
+                self.close()
+                self.order = None
+
+    def stop(self):
+        pnl = round(self.broker.getvalue() - self.startcash,2)
+        print(f'BBands Period: {self.p.period} PnL: {pnl} Long/Short: [{self.num_long_trades}, {self.num_short_trades}]')
+
         

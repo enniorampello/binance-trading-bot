@@ -4,7 +4,7 @@ from import_data import symbols_and_start_dates
 import datetime
 import backtrader as bt
 from datetime import timedelta
-from strategies import TrailCross, GoldenCross
+from strategies import TrailCross, GoldenCross, BollingerBandsStrategy
 
 def test_strategy(strategy: bt.Strategy, symbol='BTCUSDT', timestamp='30min', days_after_start_date=365, tot_days_window=180, opt=False):
     cerebro = bt.Cerebro()
@@ -31,38 +31,54 @@ def test_strategy(strategy: bt.Strategy, symbol='BTCUSDT', timestamp='30min', da
                                         )
     cerebro.adddata(data)
 
-    if strategy is GoldenCross:
-        period1_1 = int(input('Set lower bound for the short EMA: '))
-        period1_2 = int(input('Set upper bound for the short EMA: '))
-        period2_1 = int(input('Set lower bound for the long EMA: '))
-        period2_2 = int(input('Set upper bound for the long EMA: '))
+    if opt:
+        if strategy is GoldenCross:
+            period1_1 = int(input('Set lower bound for the short EMA: '))
+            period1_2 = int(input('Set upper bound for the short EMA: '))
+            period2_1 = int(input('Set lower bound for the long EMA: '))
+            period2_2 = int(input('Set upper bound for the long EMA: '))
 
-        self.cerebro.optstrategy(
-            GoldenCross,
-            period1=range(period1_1,period1_2),
-            period2=range(period2_1, period2_2)
-        )
-    elif strategy is TrailCross:
-        # TODO complete the TrailCross strategy
-        period1_1, period1_2 = input('Set the range for the short EMA: ').split()
-        period2_1, period2_2 = input('Set the range for the long EMA: ').split()
-        is_percent = input('Type 1 to set percent or type 0 to set amount: ')
+            cerebro.optstrategy(
+                GoldenCross,
+                period1=range(period1_1,period1_2),
+                period2=range(period2_1, period2_2)
+            )
+        elif strategy is TrailCross:
+            # TODO complete the TrailCross strategy
+            period1_1, period1_2 = input('Set the range for the short EMA: ').split()
+            period2_1, period2_2 = input('Set the range for the long EMA: ').split()
+            is_percent = input('Type 1 to set percent or type 0 to set amount: ')
 
-        if is_percent == 1:
-            # TODO implement input management with percentage mode
-            pass
-        else:
-            tp_amount1, tp_amount2 = input('Set the range for take-profit amount (default 4.0): ').split()
-            sl_amount1, sl_amount2 = input('Set the range for stop-loss amount (default 1.5): ').split()
+            if is_percent == 1:
+                # TODO implement input management with percentage mode
+                pass
+            else:
+                tp_amount1, tp_amount2 = input('Set the range for take-profit amount (default 4.0): ').split()
+                sl_amount1, sl_amount2 = input('Set the range for stop-loss amount (default 1.5): ').split()
+                cerebro.optstrategy(
+                    strategy,
+                    period1=range(int(period1_1), int(period1_2)),
+                    period2=range(int(period2_1), int(period2_2)),
+                    tp_amount=range(int(tp_amount1), int(tp_amount2)),
+                    sl_amount=range(int(sl_amount1), int(sl_amount2))
+                )
+        elif strategy is BollingerBandsStrategy:
+            period = input("Insert the period range for the Bollinger Bands: ").split()
+            distance = input('Insert the range for the minimum distam=nce from the bands: ').split()
+            stop_loss = input('Insert the range for the stop loss percentage: ').split()
             cerebro.optstrategy(
                 strategy,
-                period1=range(int(period1_1), int(period1_2)),
-                period2=range(int(period2_1), int(period2_2)),
-                tp_amount=range(int(tp_amount1), int(tp_amount2)),
-                sl_amount=range(int(sl_amount1), int(sl_amount2))
+                period=range(int(period[0]),int(period[1])),
+                distance=range(int(distance[0]),int(distance[1])),
+                stoploss=range(int(stop_loss[0]),int(stop_loss[1]))
             )
+    else:
+        cerebro.addstrategy(strategy)
     cerebro.run()
+    if not opt:
+        cerebro.plot()
 
 
 if __name__ == '__main__':
-    test_strategy(TrailCross, opt=True)
+
+    test_strategy(BollingerBandsStrategy, opt=False, timestamp='1h', tot_days_window=1000, symbol='LTCUSDT')
