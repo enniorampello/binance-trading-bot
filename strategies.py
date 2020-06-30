@@ -7,8 +7,8 @@ class GoldenCross(bt.Strategy):
     params = dict (
         ema = ExponentialMovingAverage,
         cross = CrossOver,
-        period1 = 7,
-        period2 = 30,
+        period1 = 37,
+        period2 = 43,
     )
 
     def log(self, txt, dt=None):
@@ -192,10 +192,10 @@ class TrailCross(bt.Strategy):
 class BollingerBandsStrategy(bt.Strategy):
 
     params = dict(
-        period = 20,
+        period = 25,
         devfactor = 2.0,
-        distance = 2,
-        stoploss = 2,
+        distance = 1,
+        stoploss = 5,
         cross = CrossOver
     )
 
@@ -257,7 +257,7 @@ class BollingerBandsStrategy(bt.Strategy):
     '''
     def next(self):
         # Crossover with ema trend check
-        position_size = (self.env.broker.getcash() * 0.9)/self.data.close
+        position_size = (self.env.broker.getcash() * 0.8)/self.data.close
 
         if self.crossdown < 0:
             if self.order is None and self.data.close[0] < self.ema[0]*(1-self.p.distance*0.01):
@@ -276,15 +276,15 @@ class BollingerBandsStrategy(bt.Strategy):
                     self.close()
                     self.order = None
         elif self.order is not None:
-            if self.order.isbuy() and (self.data.close[0] < (self.bbands.lines.bot[0]*(1-self.p.stoploss*0.01)) or self.crossema < 0):
+            if self.order.isbuy() and self.data.close[0] < (self.bbands.lines.bot[0]*(1-self.p.stoploss*0.01)):
                 self.close()
                 self.order = None
-            elif self.order.issell() and (self.data.close[0] > (self.bbands.lines.top[0]*(1+self.p.stoploss*0.01)) or self.crossema > 0):
+            elif self.order.issell() and self.data.close[0] > (self.bbands.lines.top[0]*(1+self.p.stoploss*0.01)):
                 self.close()
                 self.order = None
     
     def stop(self):
         pnl = round(self.broker.getvalue() - self.startcash,2)
-        print(f'BBands Period: {self.p.period} PnL: {pnl} Long/Short: [{self.num_long_trades}, {self.num_short_trades}]')
+        print(f'BBands Period: {self.p.period} Distance/SL: [{self.p.distance}, {self.p.stoploss}] PnL: {pnl} Long/Short: [{self.num_long_trades}, {self.num_short_trades}]')
 
         

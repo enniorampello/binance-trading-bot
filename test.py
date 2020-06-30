@@ -103,14 +103,11 @@ def test_strategy(strategy: bt.Strategy, symbol='BTCUSDT', timestamp='30min', da
                         sl_amount=range(int(sl_amount1), int(sl_amount2))
                     )
             elif strategy is BollingerBandsStrategy:
-                period = input("Insert the period range for the Bollinger Bands: ").split()
-                distance = input('Insert the range for the minimum distam=nce from the bands: ').split()
-                stop_loss = input('Insert the range for the stop loss percentage: ').split()
                 cerebro.optstrategy(
                     strategy,
-                    period=range(int(period[0]),int(period[1])),
-                    distance=range(int(distance[0]),int(distance[1])),
-                    stoploss=range(int(stop_loss[0]),int(stop_loss[1]))
+                    period=range(19,27),
+                    distance=range(0,15),
+                    stoploss=range(0,15)
                 )
         else:
             cerebro.addstrategy(strategy)
@@ -154,4 +151,11 @@ def test_strategy(strategy: bt.Strategy, symbol='BTCUSDT', timestamp='30min', da
 
 if __name__ == '__main__':
 
-    test_strategy(BollingerBandsStrategy, multi_timestamp=False, timestamp='2h', tot_days_window=365)
+    test_strategy(
+        strategy=BollingerBandsStrategy, 
+        multi_timestamp=False, 
+        timestamp='2h',
+        days_after_start_date=5,
+        tot_days_window=1000,
+        opt=False
+        )
