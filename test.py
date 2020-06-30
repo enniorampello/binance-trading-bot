@@ -154,4 +154,4 @@ def test_strategy(strategy: bt.Strategy, symbol='BTCUSDT', timestamp='30min', da
 
 if __name__ == '__main__':
 
-    test_strategy(BollingerBandsStrategy, multi_timestamp=False, timestamp='4h')
+    test_strategy(BollingerBandsStrategy, multi_timestamp=False, timestamp='2h', tot_days_window=365)
