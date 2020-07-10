@@ -2,6 +2,12 @@ import  backtrader as bt
 import datetime
 from backtrader.indicators import ExponentialMovingAverage, CrossOver, BBands
 
+class tradeid:
+    BOLL_LONG = 1
+    BOLL_SHORT = 2
+    EMA_LONG = 3
+    EMA_SHORT = 4
+
 class GoldenCross(bt.Strategy):
 
     params = dict (
@@ -20,6 +26,8 @@ class GoldenCross(bt.Strategy):
         self.ema1 = self.p.ema(period=self.p.period1)
         self.ema2 = self.p.ema(period=self.p.period2)
         self.cross = self.p.cross(self.ema1, self.ema2)
+
+        self.atr = bt.indicators.AverageTrueRange(self.data, period=14)
 
         self.startcash = self.broker.getvalue()
         self.long = False
@@ -68,17 +76,23 @@ class GoldenCross(bt.Strategy):
         position_size = (self.env.broker.getcash()*0.8)/self.data.close
         if self.cross > 0:
             self.close()
-            self.buy(size=position_size)
+            if self.atr > 0.5:
+                self.buy(size=position_size)
             # self.log('BUY CREATE, %.2f' % self.data.close[0])
             self.num_long_trades += 1
         elif self.cross < 0:
             self.close()
-            self.sell(size=position_size)
+            if self.atr > 0.5:
+                self.sell(size=position_size)
             self.num_short_trades += 1
             # self.log('SELL CREATE, %.2f' % self.data.close[0])
 
     def stop(self):
         pnl = round(self.broker.getvalue() - self.startcash,2)
+        # percent_win = 
+        # sharp_ratio = 
+        # tot_drawdown = 
+        # max_drawdown = 
         print(f'EMA Period: [{self.p.period1}, {self.p.period2}] Final PnL: {pnl} Long/Short trades: [{self.num_long_trades}, {self.num_short_trades}]')
 
 class TrailCross(bt.Strategy):
@@ -193,9 +207,13 @@ class BollingerBandsStrategy(bt.Strategy):
 
     params = dict(
         period = 25,
+        period1 = 13,
+        period2 = 25,
         devfactor = 2.0,
         distance = 1,
         stoploss = 5,
+        atr_ema = 6,
+        atr_boll = 2,
         cross = CrossOver
     )
 
@@ -204,13 +222,19 @@ class BollingerBandsStrategy(bt.Strategy):
         self.startcash = self.broker.getvalue()
 
         self.cross = bt.indicators.CrossOver
-        self.ema = bt.indicators.MovingAverageSimple(period=200)
+        self.ema = bt.indicators.MovingAverageSimple(self.data.close, period=200)
+        self.ema1 = bt.indicators.MovingAverageSimple(self.data.close, period=self.p.period1)
+        self.ema2 = bt.indicators.MovingAverageSimple(self.data.close, period=self.p.period2)
+        self.atr = bt.indicators.AverageTrueRange(self.data, period=14)
 
         self.order = None
 
-        self.crossup = self.p.cross(self.data.close, self.bbands.lines.bot)
-        self.crossdown = self.p.cross(self.data.close, self.bbands.lines.top)
-        self.crossema = self.p.cross(self.data.close, self.ema)
+        self.atr_ema = self.p.atr_ema / 10
+        self.atr_boll = self.p.atr_boll / 10
+
+        self.crossup = self.p.cross(self.data.close, self.bbands.lines.bot, plot=False)
+        self.crossdown = self.p.cross(self.data.close, self.bbands.lines.top, plot=False)
+        self.crossema = self.p.cross(self.ema1, self.ema, plot=False)
 
         self.close_to_top = False
         self.close_to_bottom = False
@@ -257,34 +281,39 @@ class BollingerBandsStrategy(bt.Strategy):
     '''
     def next(self):
         # Crossover with ema trend check
-        position_size = (self.env.broker.getcash() * 0.8)/self.data.close
+        position_size = (self.env.broker.getcash())/self.data.close
 
         if self.crossdown < 0:
-            if self.order is None and self.data.close[0] < self.ema[0]*(1-self.p.distance*0.01):
-                self.order = self.sell(size=position_size)
+            if self.data.close[0] < self.ema[0]*(1-self.p.distance*0.01) and self.atr[0] <= self.atr_boll:
+                self.sell(size=position_size, tradeid=tradeid.BOLL_LONG)
                 self.num_short_trades += 1
-            elif self.order is not None:
-                if self.order.isbuy():
-                    self.close()
-                    self.order = None
+                self.close(tradeid=tradeid.BOLL_LONG)
         elif self.crossup > 0:
-            if self.order is None and self.data.close[0] > self.ema[0]*(1+self.p.distance*0.01):
-                self.order = self.buy(size=position_size)
+            if self.data.close[0] > self.ema[0]*(1+self.p.distance*0.01) and self.atr[0] <= self.atr_boll:
+                self.buy(size=position_size, tradeid=tradeid.BOLL_LONG)
                 self.num_long_trades += 1
-            elif self.order is not None:
-                if self.order.issell():
-                    self.close()
-                    self.order = None
-        elif self.order is not None:
-            if self.order.isbuy() and self.data.close[0] < (self.bbands.lines.bot[0]*(1-self.p.stoploss*0.01)):
-                self.close()
+                self.close(tradeid=tradeid.BOLL_SHORT)
+        else:
+            if self.data.close[0] < (self.bbands.lines.bot[0]*(1-self.p.stoploss*0.01)):
+                self.close(tradeid=tradeid.BOLL_LONG)
                 self.order = None
-            elif self.order.issell() and self.data.close[0] > (self.bbands.lines.top[0]*(1+self.p.stoploss*0.01)):
-                self.close()
-                self.order = None
+            elif self.data.close[0] > (self.bbands.lines.top[0]*(1+self.p.stoploss*0.01)):
+                self.close(tradeid=tradeid.BOLL_SHORT)
+
+        if self.crossema > 0:
+            self.close(tradeid=tradeid.EMA_SHORT)
+            if self.atr > self.atr_ema:
+                self.buy(size=position_size, tradeid=tradeid.EMA_LONG)
+                self.num_long_trades += 1
+        elif self.crossema < 0:
+            self.close(tradeid=tradeid.EMA_LONG)
+            if self.atr > self.atr_ema:
+                self.sell(size=position_size, tradeid=tradeid.EMA_SHORT)
+                self.num_short_trades += 1
+
     
     def stop(self):
         pnl = round(self.broker.getvalue() - self.startcash,2)
-        print(f'BBands Period: {self.p.period} Distance/SL: [{self.p.distance}, {self.p.stoploss}] PnL: {pnl} Long/Short: [{self.num_long_trades}, {self.num_short_trades}]')
+        print(f'BBands: {self.p.period} | EMA periods: [{self.p.period1},{self.p.period2}] | ATR (ema/boll): [{self.atr_ema}, {self.atr_boll}] | PnL: {pnl} | Long/Short: [{self.num_long_trades}, {self.num_short_trades}]')
 
         

@@ -73,15 +73,10 @@ def test_strategy(strategy: bt.Strategy, symbol='BTCUSDT', timestamp='30min', da
 
         if opt:
             if strategy is GoldenCross:
-                period1_1 = int(input('Set lower bound for the short EMA: '))
-                period1_2 = int(input('Set upper bound for the short EMA: '))
-                period2_1 = int(input('Set lower bound for the long EMA: '))
-                period2_2 = int(input('Set upper bound for the long EMA: '))
-
                 cerebro.optstrategy(
                     GoldenCross,
-                    period1=range(period1_1,period1_2),
-                    period2=range(period2_1, period2_2)
+                    period1=range(5,25),
+                    period2=range(15,40)
                 )
             elif strategy is TrailCross:
                 # TODO complete the TrailCross strategy
@@ -105,9 +100,7 @@ def test_strategy(strategy: bt.Strategy, symbol='BTCUSDT', timestamp='30min', da
             elif strategy is BollingerBandsStrategy:
                 cerebro.optstrategy(
                     strategy,
-                    period=range(19,27),
-                    distance=range(0,15),
-                    stoploss=range(0,15)
+                    atr_boll=range(1, 8),
                 )
         else:
             cerebro.addstrategy(strategy)
@@ -156,6 +149,6 @@ if __name__ == '__main__':
         multi_timestamp=False, 
         timestamp='2h',
         days_after_start_date=5,
-        tot_days_window=1000,
+        tot_days_window=500,
         opt=False
         )
