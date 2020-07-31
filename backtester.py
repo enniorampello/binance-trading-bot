@@ -31,9 +31,13 @@ class Backtester:
         self.risk_to_reward = 0
 
         # STATE VARIABLES
+        self.num_trades = 0
         self.trades = []
+        self.trades_df = None
+        self.open_trades = []
         self.current_capital = 10000
         self.current_date = None
+        self.data_window = None
         self.current_coins = 0
 
     def add_data(self, symbol='BTCUSDT', timestamp='2h', mode=0):
@@ -50,7 +54,7 @@ class Backtester:
         self.current_date = from_date
 
         df = pd.read_csv(data_path)
-        df['OpenTime'] = pd.to_datetime(df['Open time'])
+        df['OpenTime'] = pd.to_datetime(df['Open time'], format='%Y-%m-%d %H:%M:%S')
         df = df.drop(['Open time'], axis=1)
         df = df[(df.OpenTime >= from_date) & (df.OpenTime <= to_date)]
         df = df.set_index('OpenTime')
@@ -62,5 +66,21 @@ class Backtester:
         self.strategy.backtester = self
 
     def run(self):
-        
+        if self.strategy is None:
+            print('Error: no strategy added for the backtest')
+            return
+        elif self.data is None:
+            print('Error: no data added for the backtest')
+            return
 
+        for i in range(self.strategy.len, len(self.data)):
+            self.data_window = self.data[i-self.strategy.len:i]
+            self.current_date = self.data_window.index[self.strategy.len]
+            self.strategy.next()
+        self.strategy.stop()
+
+        self.trades_df = pd.DataFrame(self.trades, columns=['open_date','id','number','type','quantity','entry_price','exit_price','close_date','pnl'])
+        self.compute_stats()
+
+    def compute_stats(self):
+        pass
