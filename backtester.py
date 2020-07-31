@@ -1,4 +1,5 @@
 import pandas as pd
+import math
 import datetime
 from pathlib import Path
 from datetime import timedelta
@@ -13,29 +14,30 @@ class Mode:
 
 class Backtester:
 
-    def __init__(self):
+    def __init__(self, initial_capital=10000, periods_per_day=12):
         self.data = None
         self.strategy = None
         
         self.mode = Mode.TEST
-        self.initial_capital = 10000
-        
+        self.initial_capital = initial_capital
+        self.periods_per_day = periods_per_day
         
         # STATISTICS: indicators of the performance of the strategy
         self.max_drawdown = 0
-        self.profit_trades = 0
-        self.loss_trades = 0
         self.percent_win = 0
-        self.avg_drawdown = 0
+        self.return_over_investment = 0
         self.sharpe_ratio = 0
         self.risk_to_reward = 0
 
         # STATE VARIABLES
+        self.portfolio_value = pd.Series()
+        self.current_portfolio_value = None
+        self.final_portfolio_value = 0
         self.num_trades = 0
         self.trades = []
         self.trades_df = None
         self.open_trades = []
-        self.current_capital = 10000
+        self.current_capital = initial_capital
         self.current_date = None
         self.data_window = None
         self.current_coins = 0
@@ -76,11 +78,46 @@ class Backtester:
         for i in range(self.strategy.len, len(self.data)):
             self.data_window = self.data[i-self.strategy.len:i]
             self.current_date = self.data_window.index[self.strategy.len]
+            self.strategy.close = self.data_window.Close
             self.strategy.next()
+            self.current_portfolio_value = pd.Series(
+                data=self.current_capital + self.current_coins*self.data_window.iloc[self.strategy.len].Close, 
+                index=self.current_date)
+            self.portfolio_value.append(self.current_portfolio_value)
         self.strategy.stop()
-
+        self.final_portfolio_value = self.current_portfolio_value.iloc[0]
         self.trades_df = pd.DataFrame(self.trades, columns=['open_date','id','number','type','quantity','entry_price','exit_price','close_date','pnl'])
         self.compute_stats()
 
     def compute_stats(self):
-        pass
+        self.max_drawdown()
+        self.percent_win()
+        self.return_over_investment()
+        self.sharpe_ratio()
+        self.risk_to_reward()
+
+    def max_drawdown(self):
+        rolling_max = self.portfolio_value.rolling(window=365*self.periods_per_day, min_periods=self.periods_per_day).max()
+        rolling_drawdown = self.portfolio_value/rolling_max - 1
+        self.max_drawdown = rolling_drawdown.min()
+        return self.max_drawdown
+
+    def percent_win(self):
+        tot = self.trades_df.count()
+        wins = self.trades_df[self.trades_df.pnl > 0].count()
+        self.percent_win = wins / tot
+        return self.percent_win
+
+    def return_over_investment(self):
+        self.return_over_investment = (self.final_portfolio_value - self.initial_capital) / self.initial_capital
+        return self.return_over_investment
+
+    def sharpe_ratio(self):
+        self.sharpe_ratio = math.sqrt(365*self.periods_per_day) * self.portfolio_value.mean() / self.portfolio_value.std()
+        return self.sharpe_ratio
+
+    def risk_to_reward(self):
+        avg_win = self.trades_df[self.trades_df.pnl > 0].mean()
+        avg_loss = abs(self.trades_df[self.trades_df.pnl <= 0].mean())
+        self.risk_to_reward = avg_win / avg_loss
+        return self.risk_to_reward
