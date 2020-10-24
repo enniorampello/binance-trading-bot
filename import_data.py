@@ -44,7 +44,7 @@ public_binance_api_key
 secret_binance_api_key
 """
 
-with open('./keys.txt' ,'r') as keys:
+with open('./<path-to-keys-file>' ,'r') as keys:
     lines = keys.readlines()
     PUBLIC_KEY = lines[0].replace('\n' ,'')
     PRIVATE_KEY = lines[1]
